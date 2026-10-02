@@ -73,6 +73,12 @@ input,textarea{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--bord
 input:focus,textarea:focus{border-color:var(--neon2);box-shadow:0 0 0 3px rgba(124,77,255,.2)}
 textarea{min-height:90px;resize:vertical}
 .hint{font-size:11px;color:var(--dim);margin-top:7px}
+/* artifact buttons grid */
+.art-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.art-btn{padding:12px;border:1px solid var(--border);border-radius:13px;background:rgba(0,0,0,.3);
+  color:var(--txt);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.2s;text-align:right}
+.art-btn:active{transform:scale(.97)}
+.art-btn:disabled{opacity:.4}
 /* loading progress bar */
 .pbar{width:82%;max-width:340px;height:10px;margin:16px auto 10px;border-radius:99px;
   background:rgba(255,255,255,.08);overflow:hidden;border:1px solid var(--border)}
@@ -193,6 +199,21 @@ nav.bottom .ic{font-size:17px}
 
     <button class="cta" id="goBtn">🎬 ساخت دوره</button>
     <button class="cta ghost" id="notebookBtn" style="display:none">🚀 باز کردن NotebookLM با پرامپت آماده</button>
+
+    <!-- ARTIFACTS (NotebookLM-style tools) -->
+    <div class="card" id="artifactsCard">
+      <label>🧪 ابزارهای هوشمند <span style="color:var(--neon3);font-weight:400">— روی ویدیوهای انتخاب‌شده</span></label>
+      <div class="art-grid">
+        <button class="art-btn" data-art="briefing">📋 بریفینگ</button>
+        <button class="art-btn" data-art="study">📖 راهنمای مطالعه</button>
+        <button class="art-btn" data-art="faq">❓ سوالات متداول</button>
+        <button class="art-btn" data-art="timeline">🗺 خط زمانی / مسیر</button>
+        <button class="art-btn" data-art="quiz">🎯 آزمون ۱۵ سوالی</button>
+        <button class="art-btn" data-art="flashcards">🃏 فلش‌کارت</button>
+        <button class="art-btn" data-art="mindmap">🧠 نقشه ذهنی</button>
+      </div>
+      <div class="hint">همه این‌ها فقط از محتوای ویدیوهای انتخابی ساخته می‌شوند — مثل NotebookLM</div>
+    </div>
   </section>
 
   <!-- LOADING -->

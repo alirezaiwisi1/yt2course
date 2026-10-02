@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-GYeoQ8/checked-fetch.js
+// .wrangler/tmp/bundle-0cea8t/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -27,7 +27,7 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
   }
 });
 
-// .wrangler/tmp/pages-dFsudD/functionsWorker-0.3402572526545691.mjs
+// .wrangler/tmp/pages-GxEKJY/functionsWorker-0.8938336255563875.mjs
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
 var urls2 = /* @__PURE__ */ new Set();
@@ -118,6 +118,132 @@ async function fetchTranscript(videoId, langPref = ["en", "fa"]) {
 }
 __name(fetchTranscript, "fetchTranscript");
 __name2(fetchTranscript, "fetchTranscript");
+var RULES = `ABSOLUTE RULES:
+- Use ONLY the information in the SOURCES below. Do NOT add outside knowledge, do NOT invent, do NOT omit any major point from the sources.`;
+function briefingPrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create a professional briefing document in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+Structure:
+1. **\u0639\u0646\u0648\u0627\u0646 \u0648 \u062E\u0644\u0627\u0635\u0647 \u0627\u062C\u0631\u0627\u06CC\u06CC** (\u06F5-\u06F6 \u062C\u0645\u0644\u0647)
+2. **\u0646\u06A9\u0627\u062A \u06A9\u0644\u06CC\u062F\u06CC** (\u06F1\u06F0-\u06F1\u06F5 \u0646\u06A9\u062A\u0647\u060C \u0647\u0631\u06A9\u062F\u0627\u0645 \u06F2-\u06F3 \u062C\u0645\u0644\u0647 \u062A\u0648\u0636\u06CC\u062D \u0648\u0627\u0642\u0639\u06CC \u0646\u0647 \u0644\u06CC\u0633\u062A \u062E\u0634\u06A9)
+3. **\u0645\u0648\u0636\u0648\u0639\u0627\u062A \u0628\u0627 \u062C\u0632\u0626\u06CC\u0627\u062A** (\u06F3-\u06F5 \u0628\u062E\u0634 \u0628\u0627 \u067E\u0627\u0631\u0627\u06AF\u0631\u0627\u0641\u200C\u0647\u0627\u06CC \u062A\u0648\u0636\u06CC\u062D\u06CC)
+4. **\u062C\u0645\u0644\u0647\u200C\u0647\u0627\u06CC \u06A9\u0644\u06CC\u062F\u06CC/\u0646\u0642\u0644\u200C\u0642\u0648\u0644\u200C\u0647\u0627\u06CC \u0645\u0647\u0645** \u0627\u0632 \u0645\u0646\u0627\u0628\u0639
+5. **\u0633\u0648\u0627\u0644\u0627\u062A \u0628\u0627\u0632 / \u0646\u06A9\u0627\u062A \u0645\u0628\u0647\u0645** (\u0627\u06AF\u0631 \u062F\u0631 \u0645\u0646\u0627\u0628\u0639 \u0647\u0633\u062A)
+
+SOURCES:
+${sources}`;
+}
+__name(briefingPrompt, "briefingPrompt");
+__name2(briefingPrompt, "briefingPrompt");
+function studyGuidePrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create a complete study guide in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+Structure:
+1. **\u0645\u0641\u0627\u0647\u06CC\u0645 \u06A9\u0644\u06CC\u062F\u06CC** \u2014 \u0647\u0631 \u0645\u0641\u0647\u0648\u0645 \u0628\u0627 \u062A\u0639\u0631\u06CC\u0641 \u06F2-\u06F4 \u062C\u0645\u0644\u0647\u200C\u0627\u06CC \u0648\u0627\u0642\u0639\u06CC \u0627\u0632 \u0645\u0646\u0627\u0628\u0639
+2. **\u0631\u0627\u0647\u0646\u0645\u0627\u06CC \u0645\u0637\u0627\u0644\u0639\u0647 \u06A9\u0648\u062A\u0627\u0647\u200C\u0645\u062F\u062A** (\u0627\u0645\u062A\u062D\u0627\u0646 \u0641\u0631\u062F\u0627): \u06F1\u06F0 \u0646\u06A9\u062A\u0647 \u062D\u06CC\u0627\u062A\u06CC
+3. **\u0633\u0648\u0627\u0644\u0627\u062A \u0627\u062D\u062A\u0645\u0627\u0644\u06CC \u0627\u0645\u062A\u062D\u0627\u0646** \u0628\u0627 \u067E\u0627\u0633\u062E \u0645\u062F\u0644 \u06A9\u0627\u0645\u0644 (\u06F8 \u0633\u0648\u0627\u0644)
+4. **\u06AF\u0644\u0686\u06CC\u0646 \u0627\u0635\u0637\u0644\u0627\u062D\u0627\u062A** \u2014 \u062C\u062F\u0648\u0644: \u0627\u0635\u0637\u0644\u0627\u062D | \u062A\u0639\u0631\u06CC\u0641 \u0627\u0632 \u0645\u0646\u0628\u0639
+
+SOURCES:
+${sources}`;
+}
+__name(studyGuidePrompt, "studyGuidePrompt");
+__name2(studyGuidePrompt, "studyGuidePrompt");
+function faqPrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create an FAQ in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+- \u06F1\u06F2 \u0633\u0648\u0627\u0644 \u067E\u0631\u062A\u06A9\u0631\u0627\u0631\u06CC \u06A9\u0647 \u06CC\u06A9 \u0645\u062E\u0627\u0637\u0628 \u0648\u0627\u0642\u0639\u06CC \u0645\u06CC\u200C\u067E\u0631\u0633\u062F
+- \u0647\u0631 \u062C\u0648\u0627\u0628 \u06F3-\u06F5 \u062C\u0645\u0644\u0647 \u06A9\u0627\u0645\u0644 \u0648 \u0622\u0645\u0648\u0632\u0646\u062F\u0647 (\u0646\u0647 \u06CC\u06A9 \u062E\u0637)
+- \u0633\u0648\u0627\u0644\u200C\u0647\u0627 \u0627\u0632 \u0633\u0627\u062F\u0647 \u0628\u0647 \u0639\u0645\u06CC\u0642 \u0645\u0631\u062A\u0628 \u0634\u0648\u0646\u062F
+
+SOURCES:
+${sources}`;
+}
+__name(faqPrompt, "faqPrompt");
+__name2(faqPrompt, "faqPrompt");
+function timelinePrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create a timeline / step-by-step progression in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+- \u0631\u0648\u06CC\u062F\u0627\u062F\u0647\u0627\u060C \u0645\u0631\u0627\u062D\u0644 \u06CC\u0627 \u0645\u0641\u0627\u0647\u06CC\u0645 \u0631\u0627 \u0628\u0647 \u062A\u0631\u062A\u06CC\u0628 \u0645\u0646\u0637\u0642\u06CC/\u0632\u0645\u0627\u0646\u06CC \u0645\u0631\u062A\u0628 \u06A9\u0646
+- \u0628\u0631\u0627\u06CC \u0647\u0631 \u0622\u06CC\u062A\u0645: \u0639\u0646\u0648\u0627\u0646 \u06A9\u0648\u062A\u0627\u0647 + \u06F2-\u06F4 \u062C\u0645\u0644\u0647 \u062A\u0648\u0636\u06CC\u062D + \u0627\u06CC\u0646\u06A9\u0647 \u062F\u0631 \u06A9\u062F\u0627\u0645 \u0645\u0646\u0628\u0639 \u0622\u0645\u062F\u0647
+- \u0627\u06AF\u0631 \u0645\u0646\u0627\u0628\u0639 \u062A\u0631\u062A\u06CC\u0628 \u0632\u0645\u0627\u0646\u06CC \u0646\u062F\u0627\u0631\u0646\u062F\u060C \u06CC\u06A9 \xAB\u0645\u0633\u06CC\u0631 \u06CC\u0627\u062F\u06AF\u06CC\u0631\u06CC\xBB \u0645\u0631\u062D\u0644\u0647\u200C\u0628\u0647\u200C\u0645\u0631\u062D\u0644\u0647 \u0628\u0633\u0627\u0632
+
+SOURCES:
+${sources}`;
+}
+__name(timelinePrompt, "timelinePrompt");
+__name2(timelinePrompt, "timelinePrompt");
+function quizPrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create a quiz in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+- \u06F1\u06F5 \u0633\u0648\u0627\u0644 \u0686\u0647\u0627\u0631\u06AF\u0632\u06CC\u0646\u0647\u200C\u0627\u06CC \u062F\u0631 \u06F3 \u0633\u0637\u062D:
+  - \u0633\u0637\u062D \u06F1 (\u0633\u0648\u0627\u0644 \u06F1-\u06F5): \u06CC\u0627\u062F\u0622\u0648\u0631\u06CC \u0645\u0633\u062A\u0642\u06CC\u0645 \u0645\u0641\u0627\u0647\u06CC\u0645
+  - \u0633\u0637\u062D \u06F2 (\u0633\u0648\u0627\u0644 \u06F6-\u06F1\u06F0): \u062F\u0631\u06A9 \u0648 \u0627\u0631\u062A\u0628\u0627\u0637 \u0645\u0641\u0627\u0647\u06CC\u0645
+  - \u0633\u0637\u062D \u06F3 (\u0633\u0648\u0627\u0644 \u06F1\u06F1-\u06F1\u06F5): \u062A\u062D\u0644\u06CC\u0644 \u0648 \u06A9\u0627\u0631\u0628\u0631\u062F
+- \u0641\u0631\u0645\u062A \u062F\u0642\u06CC\u0642 \u0647\u0631 \u0633\u0648\u0627\u0644:
+  **\u0633\u0648\u0627\u0644 N:** \u0645\u062A\u0646 \u0633\u0648\u0627\u0644
+  - \u0627\u0644\u0641) ...
+  - \u0628) ...
+  - \u062C) ...
+  - \u062F) ...
+  \u2705 **\u067E\u0627\u0633\u062E:** \u06AF\u0632\u06CC\u0646\u0647 \u062F\u0631\u0633\u062A + \u062A\u0648\u0636\u06CC\u062D \u06F2-\u06F3 \u062C\u0645\u0644\u0647\u200C\u0627\u06CC \u0686\u0631\u0627 \u062F\u0631\u0633\u062A \u0627\u0633\u062A (\u0628\u0627 \u0627\u0631\u062C\u0627\u0639 \u0628\u0647 \u0645\u0646\u0628\u0639)
+
+SOURCES:
+${sources}`;
+}
+__name(quizPrompt, "quizPrompt");
+__name2(quizPrompt, "quizPrompt");
+function flashcardsPrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create flashcards in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+- \u06F2\u06F0 \u0641\u0644\u0634\u200C\u06A9\u0627\u0631\u062A \u0628\u0627 \u0641\u0631\u0645\u062A \u062F\u0642\u06CC\u0642 \u0632\u06CC\u0631 (\u0628\u0631\u0627\u06CC \u062A\u0628\u062F\u06CC\u0644 \u062E\u0648\u062F\u06A9\u0627\u0631 \u0628\u0647 \u06A9\u0627\u0631\u062A):
+  ### \u06A9\u0627\u0631\u062A N
+  **\u067E\u0631\u0633\u0634:** ...
+  **\u067E\u0627\u0633\u062E:** ... (\u06F1-\u06F3 \u062C\u0645\u0644\u0647 \u062F\u0642\u06CC\u0642 \u0627\u0632 \u0645\u0646\u0628\u0639)
+- \u0627\u0632 \u0633\u0627\u062F\u0647 \u0628\u0647 \u062F\u0634\u0648\u0627\u0631 \u0645\u0631\u062A\u0628 \u0634\u0648\u0646\u062F
+
+SOURCES:
+${sources}`;
+}
+__name(flashcardsPrompt, "flashcardsPrompt");
+__name2(flashcardsPrompt, "flashcardsPrompt");
+function mindMapPrompt(sources, lang = "fa") {
+  const L = lang === "fa";
+  return `Create a mind map outline in ${L ? "Persian (Farsi)" : "English"} based ONLY on the sources below.
+
+${RULES}
+
+- \u0633\u0627\u062E\u062A\u0627\u0631 \u062F\u0631\u062E\u062A\u06CC \u0628\u0627 markdown:
+  # \u0645\u0648\u0636\u0648\u0639 \u0645\u0631\u06A9\u0632\u06CC
+  ## \u0634\u0627\u062E\u0647 \u0627\u0635\u0644\u06CC \u06F1 (\u06F5-\u06F7 \u0634\u0627\u062E\u0647 \u0627\u0635\u0644\u06CC)
+  ### \u0632\u06CC\u0631\u0634\u0627\u062E\u0647
+  - \u0646\u06A9\u062A\u0647 (\u0647\u0631 \u0646\u06A9\u062A\u0647 \u06CC\u06A9 \u062C\u0645\u0644\u0647 \u06A9\u0648\u062A\u0627\u0647 \u062F\u0642\u06CC\u0642 \u0627\u0632 \u0645\u0646\u0628\u0639)
+- \u0647\u0631 \u0634\u0627\u062E\u0647 \u0627\u0635\u0644\u06CC \u062D\u062F\u0627\u06A9\u062B\u0631 \u06F4 \u0632\u06CC\u0631\u0634\u0627\u062E\u0647\u060C \u0647\u0631 \u0632\u06CC\u0631\u0634\u0627\u062E\u0647 \u06F3-\u06F5 \u0646\u06A9\u062A\u0647
+- \u06A9\u0644 \u062C\u0632\u0626\u06CC\u0627\u062A \u0645\u0647\u0645 \u0645\u0646\u0627\u0628\u0639 \u0628\u0627\u06CC\u062F \u062F\u0631 \u0646\u0642\u0634\u0647 \u0628\u06CC\u0627\u06CC\u062F
+
+SOURCES:
+${sources}`;
+}
+__name(mindMapPrompt, "mindMapPrompt");
+__name2(mindMapPrompt, "mindMapPrompt");
 var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36";
 var json = /* @__PURE__ */ __name2((data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -333,6 +459,58 @@ async function pickModels(apiKey) {
 }
 __name(pickModels, "pickModels");
 __name2(pickModels, "pickModels");
+async function generateText(prompt, apiKey) {
+  const iaErrors = [];
+  const iaModels = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash-lite"];
+  for (const m of iaModels) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify({ model: m, input: prompt })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          let text = "";
+          for (const step of data?.steps || data?.outputs || []) {
+            const content = step?.content || [];
+            if (step?.type && step.type !== "model_output") continue;
+            for (const c of content) if (c?.text) text += c.text;
+          }
+          if (!text) {
+            text = JSON.stringify(data).match(/"text":"((?:[^"\\]|\\.)*)"/)?.[1]?.replace(/\\n/g, "\n") || "";
+          }
+          if (text) return text;
+          iaErrors.push(`${m}: \u067E\u0627\u0633\u062E \u0628\u062F\u0648\u0646 \u0645\u062A\u0646 \u2014 ${JSON.stringify(data).slice(0, 200)}`);
+          break;
+        }
+        const t = await res.text();
+        if (res.status === 429)
+          throw new Error("\u0633\u0642\u0641 \u0631\u0627\u06CC\u06AF\u0627\u0646 Gemini \u0645\u0648\u0642\u062A\u0627\u064B \u067E\u0631 \u0634\u062F\u0647 \u2014 \u0686\u0646\u062F \u062F\u0642\u06CC\u0642\u0647 \u062F\u06CC\u06AF\u0631 \u062F\u0648\u0628\u0627\u0631\u0647 \u0627\u0645\u062A\u062D\u0627\u0646 \u06A9\u0646 \u23F3");
+        if (res.status === 403 || res.status === 400 && /api.?key|API_KEY_INVALID/i.test(t))
+          throw new Error("\u06A9\u0644\u06CC\u062F Gemini \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u06CC\u0627 \u0628\u062F\u0648\u0646 \u062F\u0633\u062A\u0631\u0633\u06CC \u0627\u0633\u062A \u2014 \u06CC\u06A9 \u06A9\u0644\u06CC\u062F \u062A\u0627\u0632\u0647 \u0628\u06AF\u06CC\u0631 \u{1F511}");
+        if ((res.status === 503 || res.status === 500 || /high demand|overloaded/i.test(t)) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
+        iaErrors.push(`${m} \u2192 HTTP ${res.status}: ${t.slice(0, 250)}`);
+        break;
+      } catch (e) {
+        if (/سقف|کلید/.test(e.message)) throw e;
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
+        iaErrors.push(`${m}: ${e.message}`);
+        break;
+      }
+    }
+  }
+  throw new Error("Gemini error:\n" + iaErrors.join("\n").slice(0, 1200));
+}
+__name(generateText, "generateText");
+__name2(generateText, "generateText");
 async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const route = url.pathname;
@@ -387,6 +565,40 @@ async function onRequest({ request, env }) {
       );
       const course = await generateCourse({ topic, links: expanded, transcripts }, key);
       return json({ course, transcriptsUsed: Object.keys(transcripts).length });
+    } catch (e) {
+      return json({ error: e.message }, 500);
+    }
+  }
+  if (route === "/api/artifact" && request.method === "POST") {
+    try {
+      const { links, type = "briefing", lang = "fa", userKey } = await request.json();
+      const key = userKey || env.GEMINI_API_KEY;
+      if (!key) throw new Error("NO_KEY");
+      const promptMakers = {
+        briefing: briefingPrompt,
+        study: studyGuidePrompt,
+        faq: faqPrompt,
+        timeline: timelinePrompt,
+        quiz: quizPrompt,
+        flashcards: flashcardsPrompt,
+        mindmap: mindMapPrompt
+      };
+      const maker = promptMakers[type];
+      if (!maker) return json({ error: "\u0646\u0648\u0639 \u0646\u0627\u0645\u0639\u062A\u0628\u0631" }, 400);
+      const sources = [];
+      const targets = (links || []).slice(0, 6);
+      await Promise.all(
+        targets.map(async (l) => {
+          const id = ((l.url || l).match(/v=([\w-]{11})/) || [])[1];
+          if (!id) return;
+          const tr = await fetchTranscript(id);
+          sources.push(`## ${l.title || id} (${l.url || l})
+${tr?.text || "(\u062A\u0631\u0646\u0633\u06A9\u0631\u06CC\u067E\u062A \u062F\u0631 \u062F\u0633\u062A\u0631\u0633 \u0646\u0628\u0648\u062F \u2014 \u0641\u0642\u0637 \u0627\u0632 \u0639\u0646\u0648\u0627\u0646 \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u06A9\u0646)"}`);
+        })
+      );
+      if (!sources.length) return json({ error: "\u0644\u06CC\u0646\u06A9 \u0648\u06CC\u062F\u06CC\u0648 \u0628\u062F\u0647" }, 400);
+      const out = await generateText(maker(sources.join("\n\n"), lang), key);
+      return json({ artifact: out, transcriptsUsed: sources.filter((s) => !s.includes("(\u062A\u0631\u0646\u0633\u06A9\u0631\u06CC\u067E\u062A \u062F\u0631 \u062F\u0633\u062A\u0631\u0633 \u0646\u0628\u0648\u062F")).length });
     } catch (e) {
       return json({ error: e.message }, 500);
     }
@@ -1083,7 +1295,7 @@ var jsonError2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default2 = jsonError2;
 
-// .wrangler/tmp/bundle-GYeoQ8/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-0cea8t/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__2 = [
   middleware_ensure_req_body_drained_default2,
   middleware_miniflare3_json_error_default2
@@ -1115,7 +1327,7 @@ function __facade_invoke__2(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__2, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-GYeoQ8/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-0cea8t/middleware-loader.entry.ts
 var __Facade_ScheduledController__2 = class ___Facade_ScheduledController__2 {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -1217,4 +1429,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__2 as __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default2 as default
 };
-//# sourceMappingURL=functionsWorker-0.3402572526545691.js.map
+//# sourceMappingURL=functionsWorker-0.8938336255563875.js.map

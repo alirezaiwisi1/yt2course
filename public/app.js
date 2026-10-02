@@ -253,6 +253,55 @@ $("#notebookBtn").addEventListener("click", () => {
   setTimeout(() => window.open("https://notebooklm.google.com", "_blank"), 900);
 });
 
+/* ---------- NotebookLM-style artifacts ---------- */
+const ART_TITLES = {
+  briefing: "📋 بریفینگ",
+  study: "📖 راهنمای مطالعه",
+  faq: "❓ سوالات متداول",
+  timeline: "🗺 خط زمانی",
+  quiz: "🎯 آزمون",
+  flashcards: "🃏 فلش‌کارت",
+  mindmap: "🧠 نقشه ذهنی",
+};
+document.querySelectorAll(".art-btn").forEach((b) =>
+  b.addEventListener("click", () => makeArtifact(b.dataset.art, b))
+);
+async function makeArtifact(type, btn) {
+  if (!state.selected.length && !$("#links").value.trim())
+    return toast("اول ویدیو انتخاب یا لینک بده", true);
+  const links = state.selected.length
+    ? state.selected.map((s) => ({ url: s.url, title: s.title }))
+    : $("#links").value.split("\n").filter((l) => vid(l)).map((l) => ({ url: l.trim(), title: "" }));
+  show("view-load");
+  startProgress();
+  setProg(20, `${ART_TITLES[type]} در حال ساخت…`, "خواندن ترنسکریپت ویدیوها");
+  const busyTimer = setInterval(() => setProg(Math.min(prog + 2, 90)), 3000);
+  document.querySelectorAll(".art-btn").forEach((b) => (b.disabled = true));
+  try {
+    const r = await fetch("/api/artifact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ links, type, lang: "fa", userKey: getKey() }),
+    });
+    const { artifact, error, transcriptsUsed } = await r.json();
+    if (error) throw new Error(error);
+    clearInterval(busyTimer);
+    stopProgress(true);
+    $("#courseOut").innerHTML =
+      `<p style="color:var(--neon3);font-size:12px;margin-bottom:10px">📄 ${ART_TITLES[type]}${transcriptsUsed ? ` • بر اساس ${transcriptsUsed} ترنسکریپت واقعی` : ""}</p>` +
+      marked.parse(artifact);
+    saveCourse({ title: ART_TITLES[type], body: artifact, date: Date.now() });
+    setTimeout(() => show("view-course"), 400);
+  } catch (e) {
+    clearInterval(busyTimer);
+    stopProgress(false);
+    show("view-home");
+    toast(e.message === "NO_KEY" ? "اول کلید Gemini بده 🔑" : e.message, true);
+  } finally {
+    document.querySelectorAll(".art-btn").forEach((b) => (b.disabled = false));
+  }
+}
+
 /* ---------- storage ---------- */
 const getCourses = () => JSON.parse(localStorage.getItem("y2c_courses") || "[]");
 function saveCourse(c) {

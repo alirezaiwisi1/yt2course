@@ -1,5 +1,9 @@
 // Cloudflare Pages Function: /api/* (Workers runtime)
 import { fetchTranscript } from "./_transcript.js";
+import {
+  briefingPrompt, studyGuidePrompt, faqPrompt, timelinePrompt,
+  quizPrompt, flashcardsPrompt, mindMapPrompt,
+} from "./_prompts.js";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36";
 
@@ -225,6 +229,55 @@ async function pickModels(apiKey) {
   return modelCache;
 }
 
+// Generic text generation (used by artifact endpoints)
+async function generateText(prompt, apiKey) {
+  const iaErrors = [];
+  const iaModels = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash-lite"];
+  for (const m of iaModels) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify({ model: m, input: prompt }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          let text = "";
+          for (const step of data?.steps || data?.outputs || []) {
+            const content = step?.content || [];
+            if (step?.type && step.type !== "model_output") continue;
+            for (const c of content) if (c?.text) text += c.text;
+          }
+          if (!text) {
+            text = JSON.stringify(data).match(/"text":"((?:[^"\\]|\\.)*)"/)?.[1]?.replace(/\\n/g, "\n") || "";
+          }
+          if (text) return text;
+          iaErrors.push(`${m}: پاسخ بدون متن — ${JSON.stringify(data).slice(0, 200)}`);
+          break;
+        }
+        const t = await res.text();
+        if (res.status === 429)
+          throw new Error("سقف رایگان Gemini موقتاً پر شده — چند دقیقه دیگر دوباره امتحان کن ⏳");
+        if (res.status === 403 || (res.status === 400 && /api.?key|API_KEY_INVALID/i.test(t)))
+          throw new Error("کلید Gemini نامعتبر یا بدون دسترسی است — یک کلید تازه بگیر 🔑");
+        if ((res.status === 503 || res.status === 500 || /high demand|overloaded/i.test(t)) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
+        iaErrors.push(`${m} → HTTP ${res.status}: ${t.slice(0, 250)}`);
+        break;
+      } catch (e) {
+        if (/سقف|کلید/.test(e.message)) throw e;
+        if (attempt === 0) { await new Promise((r) => setTimeout(r, 2500)); continue; }
+        iaErrors.push(`${m}: ${e.message}`);
+        break;
+      }
+    }
+  }
+  throw new Error("Gemini error:\n" + iaErrors.join("\n").slice(0, 1200));
+}
+
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const route = url.pathname;
@@ -285,6 +338,45 @@ export async function onRequest({ request, env }) {
       );
       const course = await generateCourse({ topic, links: expanded, transcripts }, key);
       return json({ course, transcriptsUsed: Object.keys(transcripts).length });
+    } catch (e) {
+      return json({ error: e.message }, 500);
+    }
+  }
+
+  // NotebookLM-style artifacts: briefing | study | faq | timeline | quiz | flashcards | mindmap
+  if (route === "/api/artifact" && request.method === "POST") {
+    try {
+      const { links, type = "briefing", lang = "fa", userKey } = await request.json();
+      const key = userKey || env.GEMINI_API_KEY;
+      if (!key) throw new Error("NO_KEY");
+
+      const promptMakers = {
+        briefing: briefingPrompt,
+        study: studyGuidePrompt,
+        faq: faqPrompt,
+        timeline: timelinePrompt,
+        quiz: quizPrompt,
+        flashcards: flashcardsPrompt,
+        mindmap: mindMapPrompt,
+      };
+      const maker = promptMakers[type];
+      if (!maker) return json({ error: "نوع نامعتبر" }, 400);
+
+      // gather sources: transcripts (best effort up to 6 videos) or titles
+      const sources = [];
+      const targets = (links || []).slice(0, 6);
+      await Promise.all(
+        targets.map(async (l) => {
+          const id = ((l.url || l).match(/v=([\w-]{11})/) || [])[1];
+          if (!id) return;
+          const tr = await fetchTranscript(id);
+          sources.push(`## ${l.title || id} (${l.url || l})\n${tr?.text || "(ترنسکریپت در دسترس نبود — فقط از عنوان استفاده کن)"}`);
+        })
+      );
+      if (!sources.length) return json({ error: "لینک ویدیو بده" }, 400);
+
+      const out = await generateText(maker(sources.join("\n\n"), lang), key);
+      return json({ artifact: out, transcriptsUsed: sources.filter((s) => !s.includes("(ترنسکریپت در دسترس نبود")).length });
     } catch (e) {
       return json({ error: e.message }, 500);
     }
