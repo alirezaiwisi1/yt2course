@@ -87,28 +87,74 @@ Make it practical and beginner-friendly.
 
 ${context}`;
 
-  // Discover which models this key can actually use (avoids retired-model 404s)
-  const models = await pickModels(apiKey);
-  if (!models.length) throw new Error("کلید هیچ مدل Gemini قابل استفاده‌ای ندارد");
+  const iaErrors = [];
+  // NEW: Interactions API (Google's current GA endpoint) first
+  const iaModels = ["gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"];
+  for (const m of iaModels) {
+    try {
+      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({ model: m, input: prompt }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const outs = data?.outputs || [];
+        const text = [...outs].reverse().find((o) => o.text)?.text;
+        if (text) return text;
+      } else {
+        const t = await res.text();
+        if (res.status === 429)
+          throw new Error("سقف رایگان Gemini موقتاً پر شده — چند دقیقه دیگر دوباره امتحان کن ⏳");
+        if (res.status === 403 || (res.status === 400 && /api.?key|permission/i.test(t)))
+          throw new Error("کلید Gemini نامعتبر یا بدون دسترسی است — یک کلید تازه بگیر 🔑");
+        iaErrors.push(`${m} → HTTP ${res.status}: ${t.slice(0, 300)}`);
+      }
+    } catch (e) {
+      if (/سقف|کلید/.test(e.message)) throw e;
+      iaErrors.push(`${m}: ${e.message}`);
+    }
+  }
+
+  // FALLBACK: legacy generateContent with discovered + alias models
+  const aliases = ["gemini-flash-latest", "gemini-2.5-flash"];
+  let discovered = [];
+  try { discovered = await pickModels(apiKey); } catch (_) {}
+  const models = [...new Set([...aliases, ...discovered])];
 
   const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
-  let lastErr = "";
+  const errors = [...iaErrors];
   for (const m of models) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body }
-    );
+    let res;
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body }
+      );
+    } catch (e) {
+      errors.push(`${m}: network ${e.message}`);
+      continue;
+    }
     if (res.ok) {
       const data = await res.json();
       return (
         data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "No response"
       );
     }
-    lastErr = (await res.text()).slice(0, 200);
-    // 429 = rate limit on a good model: stop trying others
-    if (res.status === 429) break;
+    const errText = await res.text();
+    errors.push(`${m} → HTTP ${res.status}: ${errText.slice(0, 400)}`);
+    if (res.status === 429) {
+      throw new Error(
+        "سقف رایگان Gemini موقتاً پر شده — چند دقیقه دیگر دوباره امتحان کن ⏳"
+      );
+    }
+    if (res.status === 403 || res.status === 400) {
+      const t = errText.toLowerCase();
+      if (/api key|api_key|permission/.test(t))
+        throw new Error("کلید Gemini نامعتبر یا بدون دسترسی است — یک کلید تازه بگیر 🔑");
+    }
   }
-  throw new Error("Gemini error: " + lastErr);
+  throw new Error("Gemini error:\n" + errors.join("\n").slice(0, 1500));
 }
 
 // Query ListModels and return generateContent-capable model ids, best first
