@@ -52,10 +52,14 @@ async function searchYT() {
   if (q.length < 3) return;
   $("#results").innerHTML = `<p style="color:var(--dim);font-size:12px;text-align:center;padding:10px">🔍 در حال جستجو…</p>`;
   try {
+    const isPl = /list=|^(PL|OL|UU|FL|LL|RD)[\w-]{10,}$/.test(q);
     const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-    const { results } = await r.json();
+    const { results, playlist } = await r.json();
     if (!results?.length) throw 0;
-    $("#results").innerHTML = results
+    const header = playlist
+      ? `<div class="vitem" data-selectall="1"><div style="font-size:12px;font-weight:800;color:var(--neon3)">📂 پلی‌لیست — ${results.length} ویدیو (کلیک = انتخاب همه)</div></div>`
+      : "";
+    $("#results").innerHTML = header + results
       .map(
         (v) => `
       <div class="vitem" data-id="${v.id}" data-title="${v.title.replace(/"/g, "&quot;")}"
@@ -76,13 +80,28 @@ async function searchYT() {
 $("#results").addEventListener("click", (e) => {
   const it = e.target.closest(".vitem");
   if (!it) return;
+  // select-all toggle when clicking a playlist header
+  if (it.dataset.selectall === "1") {
+    const items = [...document.querySelectorAll(".vitem[data-id]")];
+    const turnOn = state.selected.length < items.length;
+    state.selected = turnOn
+      ? items.map((x) => ({ id: x.dataset.id, url: x.dataset.url, title: x.dataset.title }))
+      : [];
+    items.forEach((x) => x.classList.toggle("sel", turnOn));
+    updateCount();
+    return;
+  }
   const id = it.dataset.id;
   const i = state.selected.findIndex((s) => s.id === id);
   if (i >= 0) state.selected.splice(i, 1);
   else state.selected.push({ id, url: it.dataset.url, title: it.dataset.title });
   it.classList.toggle("sel");
-  $("#selCount").textContent = state.selected.length ? `✓ ${state.selected.length} ویدیو انتخاب شد` : "";
+  updateCount();
 });
+
+function updateCount() {
+  $("#selCount").textContent = state.selected.length ? `✓ ${state.selected.length} ویدیو انتخاب شد` : "";
+}
 
 /* ---------- generate course ---------- */
 $("#goBtn").addEventListener("click", async () => {
@@ -114,9 +133,10 @@ $("#goBtn").addEventListener("click", async () => {
 $("#notebookBtn").addEventListener("click", () => {
   const links = $("#links").value.trim();
   if (!links) return toast("حداقل یک لینک ویدیو وارد کن", true);
-  const urls = links.split("\n").filter((l) => vid(l));
-  if (!urls.length) return toast("لینک معتبر یوتیوب پیدا نشد", true);
-  const prompt = `با استفاده از این ویدیوها، یک دوره آموزشی مرحله‌به‌مرحله به همراه لینک ویدیوی مرتبط برای من بساز:\n\n${urls.join("\n")}`;
+  const urls = links.split("\n").map((l) => l.trim()).filter((l) => vid(l) || /list=|^(PL|OL|UU|FL|LL|RD)[\w-]{10,}$/.test(l));
+  if (!urls.length) return toast("لینک معتبر یوتیوب یا پلی‌لیست پیدا نشد", true);
+  const plUrls = urls.filter((u) => /list=|^(PL|OL|UU|FL|LL|RD)/.test(u) && !vid(u));
+  const prompt = `با استفاده از این ویدیوها${plUrls.length ? " و پلی‌لیست‌ها (تمام ویدیوهای داخل هر پلی‌لیست را هم بررسی کن)" : ""}، یک دوره آموزشی مرحله‌به‌مرحله به همراه لینک ویدیوی مرتبط برای من بساز:\n\n${urls.join("\n")}`;
   saveCourse({ title: "پل NotebookLM", body: prompt, date: Date.now(), bridge: true });
   navigator.clipboard
     ? navigator.clipboard.writeText(prompt).then(

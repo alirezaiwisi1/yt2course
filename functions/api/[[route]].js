@@ -37,6 +37,39 @@ async function youtubeSearch(q) {
   return results.slice(0, 12);
 }
 
+function extractPlaylistId(link) {
+  const m = String(link).match(/[?&]list=([\w-]+)/);
+  return m ? m[1] : (/^(PL|OL|UU|FL|LL|RD)[\w-]{10,}$/.test(link.trim()) ? link.trim() : null);
+}
+
+// Playlist page uses new lockupViewModel format
+async function playlistVideos(listId) {
+  const url = `https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}`;
+  const html = await (await fetch(url, { headers: { "User-Agent": UA } })).text();
+  const m = html.match(/var ytInitialData = ({.*?});<\/script>/s);
+  if (!m) return [];
+  let d;
+  try { d = JSON.parse(m[1]); } catch { return []; }
+  const lvs = [];
+  (function walk(o) {
+    if (Array.isArray(o)) return o.forEach(walk);
+    if (o && typeof o === "object") {
+      if (o.lockupViewModel) lvs.push(o.lockupViewModel);
+      for (const v of Object.values(o)) walk(v);
+    }
+  })(d);
+  return lvs
+    .map((lv) => ({
+      id: lv.contentId,
+      title: lv?.metadata?.lockupMetadataViewModel?.title?.content ?? "",
+      channel: "",
+      thumb: `https://i.ytimg.com/vi/${lv.contentId}/mqdefault.jpg`,
+      duration: "",
+    }))
+    .filter((v) => v.id && /^[\w-]{11}$/.test(v.id))
+    .slice(0, 30);
+}
+
 async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
   let context = topic ? `Topic: ${topic}\n` : "";
@@ -83,7 +116,13 @@ export async function onRequest({ request, env }) {
 
   if (route === "/api/search") {
     try {
-      return json({ results: await youtubeSearch(url.searchParams.get("q") || "") });
+      const q = url.searchParams.get("q") || "";
+      const pl = extractPlaylistId(q);
+      if (pl) {
+        const videos = await playlistVideos(pl);
+        if (videos.length) return json({ results: videos, playlist: true });
+      }
+      return json({ results: await youtubeSearch(q) });
     } catch (e) {
       return json({ error: e.message }, 500);
     }
@@ -92,7 +131,16 @@ export async function onRequest({ request, env }) {
   if (route === "/api/course" && request.method === "POST") {
     try {
       const { topic, links, lang } = await request.json();
-      const course = await generateCourse({ topic, links, lang }, env.GEMINI_API_KEY);
+      // expand playlist links into their videos
+      const expanded = [];
+      for (const l of links || []) {
+        const pl = extractPlaylistId(l.url || l);
+        if (pl && !l.url?.includes("v=")) {
+          const vids = await playlistVideos(pl);
+          expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
+        } else expanded.push(l);
+      }
+      const course = await generateCourse({ topic, links: expanded }, env.GEMINI_API_KEY);
       return json({ course });
     } catch (e) {
       return json({ error: e.message }, 500);

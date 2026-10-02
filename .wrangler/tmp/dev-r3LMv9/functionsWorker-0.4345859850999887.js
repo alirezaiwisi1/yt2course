@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-dAHEIa/checked-fetch.js
+// .wrangler/tmp/bundle-WDRHsE/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -27,7 +27,7 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
   }
 });
 
-// .wrangler/tmp/pages-ZBc2TN/functionsWorker-0.20036154357395386.mjs
+// .wrangler/tmp/pages-enuEEb/functionsWorker-0.4345859850999887.mjs
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
 var urls2 = /* @__PURE__ */ new Set();
@@ -89,6 +89,41 @@ async function youtubeSearch(q) {
 }
 __name(youtubeSearch, "youtubeSearch");
 __name2(youtubeSearch, "youtubeSearch");
+function extractPlaylistId(link) {
+  const m = String(link).match(/[?&]list=([\w-]+)/);
+  return m ? m[1] : /^(PL|OL|UU|FL|LL|RD)[\w-]{10,}$/.test(link.trim()) ? link.trim() : null;
+}
+__name(extractPlaylistId, "extractPlaylistId");
+__name2(extractPlaylistId, "extractPlaylistId");
+async function playlistVideos(listId) {
+  const url = `https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}`;
+  const html = await (await fetch(url, { headers: { "User-Agent": UA } })).text();
+  const m = html.match(/var ytInitialData = ({.*?});<\/script>/s);
+  if (!m) return [];
+  let d;
+  try {
+    d = JSON.parse(m[1]);
+  } catch {
+    return [];
+  }
+  const lvs = [];
+  (/* @__PURE__ */ __name2(/* @__PURE__ */ __name((function walk(o) {
+    if (Array.isArray(o)) return o.forEach(walk);
+    if (o && typeof o === "object") {
+      if (o.lockupViewModel) lvs.push(o.lockupViewModel);
+      for (const v of Object.values(o)) walk(v);
+    }
+  }), "walk"), "walk"))(d);
+  return lvs.map((lv) => ({
+    id: lv.contentId,
+    title: lv?.metadata?.lockupMetadataViewModel?.title?.content ?? "",
+    channel: "",
+    thumb: `https://i.ytimg.com/vi/${lv.contentId}/mqdefault.jpg`,
+    duration: ""
+  })).filter((v) => v.id && /^[\w-]{11}$/.test(v.id)).slice(0, 30);
+}
+__name(playlistVideos, "playlistVideos");
+__name2(playlistVideos, "playlistVideos");
 async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
   let context = topic ? `Topic: ${topic}
@@ -129,7 +164,13 @@ async function onRequest({ request, env }) {
     return json({ ok: true, gemini: !!env.GEMINI_API_KEY, runtime: "cloudflare" });
   if (route === "/api/search") {
     try {
-      return json({ results: await youtubeSearch(url.searchParams.get("q") || "") });
+      const q = url.searchParams.get("q") || "";
+      const pl = extractPlaylistId(q);
+      if (pl) {
+        const videos = await playlistVideos(pl);
+        if (videos.length) return json({ results: videos, playlist: true });
+      }
+      return json({ results: await youtubeSearch(q) });
     } catch (e) {
       return json({ error: e.message }, 500);
     }
@@ -137,7 +178,15 @@ async function onRequest({ request, env }) {
   if (route === "/api/course" && request.method === "POST") {
     try {
       const { topic, links, lang } = await request.json();
-      const course = await generateCourse({ topic, links, lang }, env.GEMINI_API_KEY);
+      const expanded = [];
+      for (const l of links || []) {
+        const pl = extractPlaylistId(l.url || l);
+        if (pl && !l.url?.includes("v=")) {
+          const vids = await playlistVideos(pl);
+          expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
+        } else expanded.push(l);
+      }
+      const course = await generateCourse({ topic, links: expanded }, env.GEMINI_API_KEY);
       return json({ course });
     } catch (e) {
       return json({ error: e.message }, 500);
@@ -835,7 +884,7 @@ var jsonError2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default2 = jsonError2;
 
-// .wrangler/tmp/bundle-dAHEIa/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-WDRHsE/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__2 = [
   middleware_ensure_req_body_drained_default2,
   middleware_miniflare3_json_error_default2
@@ -867,7 +916,7 @@ function __facade_invoke__2(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__2, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-dAHEIa/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-WDRHsE/middleware-loader.entry.ts
 var __Facade_ScheduledController__2 = class ___Facade_ScheduledController__2 {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -969,4 +1018,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__2 as __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default2 as default
 };
-//# sourceMappingURL=functionsWorker-0.20036154357395386.js.map
+//# sourceMappingURL=functionsWorker-0.4345859850999887.js.map
