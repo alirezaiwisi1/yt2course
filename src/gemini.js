@@ -34,13 +34,18 @@ export async function generateCourse({ topic, links, lang = "fa" }, userKey) {
   }
   if (!context) throw new Error("Provide a topic or video links");
 
-  const prompt = `You are an expert course designer. Using ONLY the videos/topic below, create a step-by-step course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
-Return markdown with:
-1. Course title
-2. Short description
-3. Numbered modules (each with: title, 3-5 bullet learnings, and the relevant video link(s))
-4. Estimated total duration
-Make it practical and beginner-friendly.
+  const prompt = `You are an expert course creator. Using ONLY the videos/topic below, write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
+
+STRICT REQUIREMENTS:
+- This must be a REAL course with actual teaching content, NOT a table of contents or syllabus.
+- For EVERY module: write 2-4 full LESSONS.
+- Each lesson must contain 3-6 solid PARAGRAPHS of real explanatory teaching text (as if the instructor is explaining the concept in words), covering the key ideas, examples, and practical takeaways from the relevant video.
+- End each lesson with: "🎬 ویدیوی این درس:" + the relevant video link(s) in markdown format [title](url).
+- Begin each module with a 2-3 sentence warm intro.
+- Finish with a "جمع‌بندی" section (2-3 paragraphs) and a short "قدم بعدی تو" action list.
+
+Format in markdown: # course title, ## module, ### lesson.
+Do NOT just list bullet points of topics — actually TEACH the material in prose.
 
 ${context}`;
 

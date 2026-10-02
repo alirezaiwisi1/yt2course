@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-QCDY7k/checked-fetch.js
+// ../.wrangler/tmp/bundle-8AJt7q/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -101,13 +101,18 @@ async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
   if (links?.length)
     context += "Videos:\n" + links.map((l) => `- ${l.url} (${l.title || ""})`).join("\n") + "\n";
   if (!context) throw new Error("Provide a topic or video links");
-  const prompt = `You are an expert course designer. Using ONLY the videos/topic below, create a step-by-step course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
-Return markdown with:
-1. Course title
-2. Short description
-3. Numbered modules (each with: title, 3-5 bullet learnings, and the relevant video link(s))
-4. Estimated total duration
-Make it practical and beginner-friendly.
+  const prompt = `You are an expert course creator. Using ONLY the videos/topic below, write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
+
+STRICT REQUIREMENTS:
+- This must be a REAL course with actual teaching content, NOT a table of contents or syllabus.
+- For EVERY module: write 2-4 full LESSONS.
+- Each lesson must contain 3-6 solid PARAGRAPHS of real explanatory teaching text (as if the instructor is explaining the concept in words), covering the key ideas, examples, and practical takeaways from the relevant video.
+- End each lesson with: "\u{1F3AC} \u0648\u06CC\u062F\u06CC\u0648\u06CC \u0627\u06CC\u0646 \u062F\u0631\u0633:" + the relevant video link(s) in markdown format [title](url).
+- Begin each module with a 2-3 sentence warm intro.
+- Finish with a "\u062C\u0645\u0639\u200C\u0628\u0646\u062F\u06CC" section (2-3 paragraphs) and a short "\u0642\u062F\u0645 \u0628\u0639\u062F\u06CC \u062A\u0648" action list.
+
+Format in markdown: # course title, ## module, ### lesson.
+Do NOT just list bullet points of topics \u2014 actually TEACH the material in prose.
 
 ${context}`;
   const iaErrors = [];
@@ -774,7 +779,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-QCDY7k/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-8AJt7q/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -806,7 +811,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-QCDY7k/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-8AJt7q/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

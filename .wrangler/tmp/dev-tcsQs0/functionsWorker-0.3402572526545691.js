@@ -131,13 +131,18 @@ async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
   if (links?.length)
     context += "Videos:\n" + links.map((l) => `- ${l.url} (${l.title || ""})`).join("\n") + "\n";
   if (!context) throw new Error("Provide a topic or video links");
-  const prompt = `You are an expert course designer. Using ONLY the videos/topic below, create a step-by-step course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
-Return markdown with:
-1. Course title
-2. Short description
-3. Numbered modules (each with: title, 3-5 bullet learnings, and the relevant video link(s))
-4. Estimated total duration
-Make it practical and beginner-friendly.
+  const prompt = `You are an expert course creator. Using ONLY the videos/topic below, write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
+
+STRICT REQUIREMENTS:
+- This must be a REAL course with actual teaching content, NOT a table of contents or syllabus.
+- For EVERY module: write 2-4 full LESSONS.
+- Each lesson must contain 3-6 solid PARAGRAPHS of real explanatory teaching text (as if the instructor is explaining the concept in words), covering the key ideas, examples, and practical takeaways from the relevant video.
+- End each lesson with: "\u{1F3AC} \u0648\u06CC\u062F\u06CC\u0648\u06CC \u0627\u06CC\u0646 \u062F\u0631\u0633:" + the relevant video link(s) in markdown format [title](url).
+- Begin each module with a 2-3 sentence warm intro.
+- Finish with a "\u062C\u0645\u0639\u200C\u0628\u0646\u062F\u06CC" section (2-3 paragraphs) and a short "\u0642\u062F\u0645 \u0628\u0639\u062F\u06CC \u062A\u0648" action list.
+
+Format in markdown: # course title, ## module, ### lesson.
+Do NOT just list bullet points of topics \u2014 actually TEACH the material in prose.
 
 ${context}`;
   const iaErrors = [];
