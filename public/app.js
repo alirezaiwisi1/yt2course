@@ -46,9 +46,17 @@ function refreshChip() {
 $("#aiChip").addEventListener("click", () => {
   $("#keyInput").value = getKey();
   $("#keyModal").style.display = "flex";
+  setTimeout(() => $("#keyInput").focus(), 50);
 });
 $("#keyClose").addEventListener("click", () => ($("#keyModal").style.display = "none"));
-$("#keySave").addEventListener("click", async () => {
+$("#keyModal").addEventListener("click", (e) => {
+  if (e.target.id === "keyModal") $("#keyModal").style.display = "none";
+});
+$("#keySave").addEventListener("click", saveKey);
+$("#keyInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveKey();
+});
+async function saveKey() {
   const k = $("#keyInput").value.trim();
   if (!k) return toast("کلید را وارد کن", true);
   toast("در حال بررسی کلید…");
@@ -67,7 +75,7 @@ $("#keySave").addEventListener("click", async () => {
   } catch {
     toast("خطا در بررسی کلید", true);
   }
-});
+}
 $("#keyRemove").addEventListener("click", () => {
   localStorage.removeItem("y2c_key");
   refreshChip();

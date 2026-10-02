@@ -1,4 +1,4 @@
-const CACHE = "y2c-v1";
+const CACHE = "y2c-v2";
 const ASSETS = ["/", "/index.html", "/app.js", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
