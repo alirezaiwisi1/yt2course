@@ -87,24 +87,55 @@ Make it practical and beginner-friendly.
 
 ${context}`;
 
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
-      apiKey,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  // Discover which models this key can actually use (avoids retired-model 404s)
+  const models = await pickModels(apiKey);
+  if (!models.length) throw new Error("کلید هیچ مدل Gemini قابل استفاده‌ای ندارد");
+
+  const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
+  let lastErr = "";
+  for (const m of models) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      return (
+        data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "No response"
+      );
     }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error("Gemini error: " + err.slice(0, 200));
+    lastErr = (await res.text()).slice(0, 200);
+    // 429 = rate limit on a good model: stop trying others
+    if (res.status === 429) break;
   }
-  const data = await res.json();
-  return (
-    data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ??
-    "No response"
+  throw new Error("Gemini error: " + lastErr);
+}
+
+// Query ListModels and return generateContent-capable model ids, best first
+let modelCache = null;
+async function pickModels(apiKey) {
+  if (modelCache) return modelCache;
+  const r = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=" +
+      encodeURIComponent(apiKey)
   );
+  if (!r.ok) throw new Error("اعتبارسنجی کلید ناموفق بود");
+  const { models = [] } = await r.json();
+  const ok = models
+    .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map((m) => m.name.replace(/^models\//, ""))
+    .filter((n) => !/embedding|aqa|imagen|veo|tts|image/i.test(n));
+  // prefer flash (fast+cheap), then newest version numbers
+  const score = (n) => {
+    let s = 0;
+    if (/flash/.test(n)) s += 100;
+    if (/lite/.test(n)) s -= 20;
+    const v = parseFloat((n.match(/(\d+(?:\.\d+)?)/) || [])[1] || "0");
+    s += v * 5;
+    return s;
+  };
+  modelCache = ok.sort((a, b) => score(b) - score(a)).slice(0, 4);
+  return modelCache;
 }
 
 export async function onRequest({ request, env }) {

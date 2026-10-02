@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-EdxwxI/checked-fetch.js
+// ../.wrangler/tmp/bundle-1jYf5f/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -110,22 +110,46 @@ Return markdown with:
 Make it practical and beginner-friendly.
 
 ${context}`;
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  const models = await pickModels(apiKey);
+  if (!models.length) throw new Error("\u06A9\u0644\u06CC\u062F \u0647\u06CC\u0686 \u0645\u062F\u0644 Gemini \u0642\u0627\u0628\u0644 \u0627\u0633\u062A\u0641\u0627\u062F\u0647\u200C\u0627\u06CC \u0646\u062F\u0627\u0631\u062F");
+  const body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
+  let lastErr = "";
+  for (const m of models) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${m}:generateContent?key=${apiKey}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      return data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "No response";
     }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error("Gemini error: " + err.slice(0, 200));
+    lastErr = (await res.text()).slice(0, 200);
+    if (res.status === 429) break;
   }
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "No response";
+  throw new Error("Gemini error: " + lastErr);
 }
 __name(generateCourse, "generateCourse");
+var modelCache = null;
+async function pickModels(apiKey) {
+  if (modelCache) return modelCache;
+  const r = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=" + encodeURIComponent(apiKey)
+  );
+  if (!r.ok) throw new Error("\u0627\u0639\u062A\u0628\u0627\u0631\u0633\u0646\u062C\u06CC \u06A9\u0644\u06CC\u062F \u0646\u0627\u0645\u0648\u0641\u0642 \u0628\u0648\u062F");
+  const { models = [] } = await r.json();
+  const ok = models.filter((m) => (m.supportedGenerationMethods || []).includes("generateContent")).map((m) => m.name.replace(/^models\//, "")).filter((n) => !/embedding|aqa|imagen|veo|tts|image/i.test(n));
+  const score = /* @__PURE__ */ __name((n) => {
+    let s = 0;
+    if (/flash/.test(n)) s += 100;
+    if (/lite/.test(n)) s -= 20;
+    const v = parseFloat((n.match(/(\d+(?:\.\d+)?)/) || [])[1] || "0");
+    s += v * 5;
+    return s;
+  }, "score");
+  modelCache = ok.sort((a, b) => score(b) - score(a)).slice(0, 4);
+  return modelCache;
+}
+__name(pickModels, "pickModels");
 async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const route = url.pathname;
@@ -682,7 +706,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-EdxwxI/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-1jYf5f/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -714,7 +738,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-EdxwxI/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-1jYf5f/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

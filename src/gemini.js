@@ -1,11 +1,31 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// Gemini client with dynamic model discovery (retired-model-proof)
+const BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+let modelCache = null;
+async function pickModels(key) {
+  if (modelCache) return modelCache;
+  const r = await fetch(`${BASE}/models?pageSize=100&key=${encodeURIComponent(key)}`);
+  if (!r.ok) throw new Error("اعتبارسنجی کلید ناموفق بود");
+  const { models = [] } = await r.json();
+  const ok = models
+    .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map((m) => m.name.replace(/^models\//, ""))
+    .filter((n) => !/embedding|aqa|imagen|veo|tts|image/i.test(n));
+  const score = (n) => {
+    let s = 0;
+    if (/flash/.test(n)) s += 100;
+    if (/lite/.test(n)) s -= 20;
+    const v = parseFloat((n.match(/(\d+(?:\.\d+)?)/) || [])[1] || "0");
+    s += v * 5;
+    return s;
+  };
+  modelCache = ok.sort((a, b) => score(b) - score(a)).slice(0, 4);
+  return modelCache;
+}
 
 export async function generateCourse({ topic, links, lang = "fa" }, userKey) {
   const key = userKey || process.env.GEMINI_API_KEY;
   if (!key) throw new Error("NO_KEY");
-
-  const genAI = new GoogleGenerativeAI(key);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   let context = topic ? `Topic: ${topic}\n` : "";
   if (links?.length) {
@@ -24,6 +44,22 @@ Make it practical and beginner-friendly.
 
 ${context}`;
 
-  const res = await model.generateContent(prompt);
-  return res.response.text();
+  const models = await pickModels(key);
+  if (!models.length) throw new Error("کلید هیچ مدل Gemini قابل استفاده‌ای ندارد");
+
+  let lastErr = "";
+  for (const m of models) {
+    const res = await fetch(`${BASE}/${m}:generateContent?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "No response";
+    }
+    lastErr = (await res.text()).slice(0, 200);
+    if (res.status === 429) break;
+  }
+  throw new Error("Gemini error: " + lastErr);
 }
