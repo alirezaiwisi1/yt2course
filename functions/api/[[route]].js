@@ -88,10 +88,10 @@ Make it practical and beginner-friendly.
 ${context}`;
 
   const iaErrors = [];
-  // NEW: Interactions API (Google's current GA endpoint) — lite first (highest free quota)
-  const iaModels = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"];
+  // Interactions API on v1beta (verified live) — lite first (highest free quota)
+  const iaModels = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash-lite"];
   for (const m of iaModels) {
-    // 2 attempts per model: transient 503/429 spikes are common
+    // 2 attempts per model: transient 503/high-demand spikes are common
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
@@ -101,25 +101,30 @@ ${context}`;
         });
         if (res.ok) {
           const data = await res.json();
-          const outs = data?.outputs || [];
-          const text = [...outs].reverse().find((o) => o.text)?.text;
+          // response shape: steps[] -> model_output -> content[] -> {type:"text", text}
+          let text = "";
+          for (const step of data?.steps || data?.outputs || []) {
+            const content = step?.content || [];
+            if (step?.type && step.type !== "model_output") continue;
+            for (const c of content) if (c?.text) text += c.text;
+          }
+          if (!text) {
+            text = JSON.stringify(data).match(/"text":"((?:[^"\\]|\\.)*)"/)?.[1]?.replace(/\\n/g, "\n") || "";
+          }
           if (text) return text;
+          iaErrors.push(`${m}: پاسخ بدون متن — ${JSON.stringify(data).slice(0, 200)}`);
           break;
         }
         const t = await res.text();
         if (res.status === 429)
           throw new Error("سقف رایگان Gemini موقتاً پر شده — چند دقیقه دیگر دوباره امتحان کن ⏳");
-        if (res.status === 403 || (res.status === 400 && /api.?key|permission/i.test(t)))
+        if (res.status === 403 || (res.status === 400 && /api.?key|API_KEY_INVALID/i.test(t)))
           throw new Error("کلید Gemini نامعتبر یا بدون دسترسی است — یک کلید تازه بگیر 🔑");
-        if ((res.status === 503 || res.status === 500) && attempt === 0) {
-          await new Promise((r) => setTimeout(r, 2500)); // wait, retry same model
-          continue;
-        }
-        if (/high demand|unavailable|overloaded/i.test(t) && attempt === 0) {
+        if ((res.status === 503 || res.status === 500 || /high demand|overloaded/i.test(t)) && attempt === 0) {
           await new Promise((r) => setTimeout(r, 2500));
           continue;
         }
-        iaErrors.push(`${m} → HTTP ${res.status}: ${t.slice(0, 300)}`);
+        iaErrors.push(`${m} → HTTP ${res.status}: ${t.slice(0, 250)}`);
         break;
       } catch (e) {
         if (/سقف|کلید/.test(e.message)) throw e;
