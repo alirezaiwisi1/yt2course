@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export async function generateCourse({ topic, links, lang = "fa" }) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not set");
+export async function generateCourse({ topic, links, lang = "fa" }, userKey) {
+  const key = userKey || process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("NO_KEY");
 
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });

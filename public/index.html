@@ -147,6 +147,20 @@ nav.bottom .ic{font-size:17px}
     <div class="chip" id="aiChip">AI: —</div>
   </header>
 
+  <!-- API KEY MODAL -->
+  <div id="keyModal" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(5,6,15,.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px">
+    <div class="card" style="width:100%;max-width:420px;margin:0">
+      <label>🔑 کلید Gemini شخصی</label>
+      <input id="keyInput" type="password" placeholder="AIza..." style="direction:ltr;text-align:left">
+      <div class="hint">رایگان از <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--neon3)">aistudio.google.com/apikey</a> بگیر. کلید فقط روی گوشی خودت ذخیره می‌شود و هرگز جایی نمی‌رود.</div>
+      <div class="actions">
+        <button class="cta" style="margin:0" id="keySave">ذخیره ✅</button>
+        <button class="cta ghost" style="margin:0" id="keyRemove">حذف</button>
+        <button class="cta ghost" style="margin:0" id="keyClose">بستن</button>
+      </div>
+    </div>
+  </div>
+
   <!-- HERO -->
   <section id="view-home">
     <div class="hero">

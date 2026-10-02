@@ -125,7 +125,7 @@ async function playlistVideos(listId) {
 __name(playlistVideos, "playlistVideos");
 __name2(playlistVideos, "playlistVideos");
 async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
-  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+  if (!apiKey) throw new Error("NO_KEY");
   let context = topic ? `Topic: ${topic}
 ` : "";
   if (links?.length)
@@ -162,6 +162,18 @@ async function onRequest({ request, env }) {
   const route = url.pathname;
   if (route === "/api/status")
     return json({ ok: true, gemini: !!env.GEMINI_API_KEY, runtime: "cloudflare" });
+  if (route === "/api/validate-key" && request.method === "POST") {
+    try {
+      const { key } = await request.json();
+      if (!key) return json({ valid: false });
+      const r = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(key)
+      );
+      return json({ valid: r.ok });
+    } catch {
+      return json({ valid: false });
+    }
+  }
   if (route === "/api/search") {
     try {
       const q = url.searchParams.get("q") || "";
@@ -177,7 +189,8 @@ async function onRequest({ request, env }) {
   }
   if (route === "/api/course" && request.method === "POST") {
     try {
-      const { topic, links, lang } = await request.json();
+      const { topic, links, lang, userKey } = await request.json();
+      const key = userKey || env.GEMINI_API_KEY;
       const expanded = [];
       for (const l of links || []) {
         const pl = extractPlaylistId(l.url || l);
@@ -186,7 +199,7 @@ async function onRequest({ request, env }) {
           expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
         } else expanded.push(l);
       }
-      const course = await generateCourse({ topic, links: expanded }, env.GEMINI_API_KEY);
+      const course = await generateCourse({ topic, links: expanded }, key);
       return json({ course });
     } catch (e) {
       return json({ error: e.message }, 500);

@@ -23,9 +23,22 @@ router.get("/search", async (req, res) => {
   }
 });
 
+router.post("/validate-key", async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (!key) return res.json({ valid: false });
+    const r = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(key)
+    );
+    res.json({ valid: r.ok });
+  } catch {
+    res.json({ valid: false });
+  }
+});
+
 router.post("/course", async (req, res) => {
   try {
-    const { topic, lang = "fa" } = req.body;
+    const { topic, lang = "fa", userKey } = req.body;
     // expand playlist links into their videos
     const expanded = [];
     for (const l of req.body.links || []) {
@@ -35,7 +48,7 @@ router.post("/course", async (req, res) => {
         expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
       } else expanded.push(l);
     }
-    const course = await generateCourse({ topic, links: expanded, lang });
+    const course = await generateCourse({ topic, links: expanded, lang }, userKey);
     res.json({ course });
   } catch (e) {
     res.status(500).json({ error: e.message });

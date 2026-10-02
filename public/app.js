@@ -18,14 +18,62 @@ const show = (id) => {
 };
 
 /* ---------- status ---------- */
+const getKey = () => localStorage.getItem("y2c_key") || "";
+let serverGemini = false;
 fetch("/api/status")
   .then((r) => r.json())
   .then((s) => {
-    const chip = $("#aiChip");
-    chip.textContent = s.gemini ? "AI: متصل ✅" : "AI: بدون کلید (حالت پل)";
-    chip.className = "chip" + (s.gemini ? " on" : "");
+    serverGemini = !!s.gemini;
+    refreshChip();
   })
   .catch(() => ($("#aiChip").textContent = "آفلاین"));
+
+function refreshChip() {
+  const chip = $("#aiChip");
+  if (getKey()) {
+    chip.textContent = "AI: کلید شخصی 🔑";
+    chip.className = "chip on";
+  } else if (serverGemini) {
+    chip.textContent = "AI: متصل ✅";
+    chip.className = "chip on";
+  } else {
+    chip.textContent = "AI: کلید بده 🔑";
+    chip.className = "chip";
+  }
+}
+
+/* click chip = open key modal */
+$("#aiChip").addEventListener("click", () => {
+  $("#keyInput").value = getKey();
+  $("#keyModal").style.display = "flex";
+});
+$("#keyClose").addEventListener("click", () => ($("#keyModal").style.display = "none"));
+$("#keySave").addEventListener("click", async () => {
+  const k = $("#keyInput").value.trim();
+  if (!k) return toast("کلید را وارد کن", true);
+  toast("در حال بررسی کلید…");
+  try {
+    const r = await fetch("/api/validate-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: k }),
+    });
+    const { valid } = await r.json();
+    if (!valid) return toast("کلید نامعتبر است ❌", true);
+    localStorage.setItem("y2c_key", k);
+    refreshChip();
+    $("#keyModal").style.display = "none";
+    toast("کلید ذخیره شد 🎉");
+  } catch {
+    toast("خطا در بررسی کلید", true);
+  }
+});
+$("#keyRemove").addEventListener("click", () => {
+  localStorage.removeItem("y2c_key");
+  refreshChip();
+  $("#keyModal").style.display = "none";
+  toast("کلید حذف شد");
+});
 
 /* ---------- tabs ---------- */
 document.querySelectorAll(".tabs button").forEach((b) =>
@@ -116,6 +164,7 @@ $("#goBtn").addEventListener("click", async () => {
         topic,
         links: state.selected.map((s) => ({ url: s.url, title: s.title })),
         lang: "fa",
+        userKey: getKey(),
       }),
     });
     const { course, error } = await r.json();
@@ -125,7 +174,12 @@ $("#goBtn").addEventListener("click", async () => {
     show("view-course");
   } catch (e) {
     show("view-home");
-    toast(e.message.includes("GEMINI") ? "کلید Gemini تنظیم نشده — حالت پل را امتحان کن" : e.message, true);
+    toast(
+      e.message === "NO_KEY"
+        ? "اول کلید Gemini بده — روی «AI: کلید بده 🔑» بالا بزن"
+        : e.message,
+      true
+    );
   }
 });
 

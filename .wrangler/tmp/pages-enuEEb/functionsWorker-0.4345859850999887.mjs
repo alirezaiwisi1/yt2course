@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-o2rP9N/checked-fetch.js
+// ../.wrangler/tmp/bundle-EdxwxI/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -95,7 +95,7 @@ async function playlistVideos(listId) {
 }
 __name(playlistVideos, "playlistVideos");
 async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
-  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+  if (!apiKey) throw new Error("NO_KEY");
   let context = topic ? `Topic: ${topic}
 ` : "";
   if (links?.length)
@@ -131,6 +131,18 @@ async function onRequest({ request, env }) {
   const route = url.pathname;
   if (route === "/api/status")
     return json({ ok: true, gemini: !!env.GEMINI_API_KEY, runtime: "cloudflare" });
+  if (route === "/api/validate-key" && request.method === "POST") {
+    try {
+      const { key } = await request.json();
+      if (!key) return json({ valid: false });
+      const r = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(key)
+      );
+      return json({ valid: r.ok });
+    } catch {
+      return json({ valid: false });
+    }
+  }
   if (route === "/api/search") {
     try {
       const q = url.searchParams.get("q") || "";
@@ -146,7 +158,8 @@ async function onRequest({ request, env }) {
   }
   if (route === "/api/course" && request.method === "POST") {
     try {
-      const { topic, links, lang } = await request.json();
+      const { topic, links, lang, userKey } = await request.json();
+      const key = userKey || env.GEMINI_API_KEY;
       const expanded = [];
       for (const l of links || []) {
         const pl = extractPlaylistId(l.url || l);
@@ -155,7 +168,7 @@ async function onRequest({ request, env }) {
           expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
         } else expanded.push(l);
       }
-      const course = await generateCourse({ topic, links: expanded }, env.GEMINI_API_KEY);
+      const course = await generateCourse({ topic, links: expanded }, key);
       return json({ course });
     } catch (e) {
       return json({ error: e.message }, 500);
@@ -669,7 +682,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-o2rP9N/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-EdxwxI/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -701,7 +714,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-o2rP9N/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-EdxwxI/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
