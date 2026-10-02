@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c1b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>YT2Course — دوره‌ساز یوتیوب</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root{
+  --bg:#0b0c1b; --bg2:#121434; --card:rgba(255,255,255,.055);
+  --border:rgba(255,255,255,.09);
+  --neon1:#ff3d81; --neon2:#7c4dff; --neon3:#00e5ff;
+  --txt:#f2f3ff; --dim:#9aa0c8;
+  --grad:linear-gradient(120deg,var(--neon1),var(--neon2) 55%,var(--neon3));
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:Vazirmatn,system-ui,sans-serif;background:var(--bg);color:var(--txt);
+  min-height:100dvh;overflow-x:hidden;
+}
+/* animated aurora background */
+.aurora{position:fixed;inset:0;z-index:-2;overflow:hidden}
+.aurora::before,.aurora::after{
+  content:"";position:absolute;width:70vmax;height:70vmax;border-radius:50%;
+  filter:blur(90px);opacity:.16;animation:float 16s ease-in-out infinite alternate;
+}
+.aurora::before{background:var(--neon2);top:-30vmax;left:-20vmax}
+.aurora::after{background:var(--neon1);bottom:-30vmax;right:-20vmax;animation-delay:-8s}
+@keyframes float{to{transform:translate(8vmax,6vmax) scale(1.15)}}
+.grid{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 40%,transparent 100%);}
+.wrap{max-width:560px;margin:0 auto;padding:24px 18px calc(90px + env(safe-area-inset-bottom))}
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 22px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px}
+.logo .mark{width:38px;height:38px;border-radius:12px;background:var(--grad);
+  display:grid;place-items:center;font-size:18px;box-shadow:0 0 22px rgba(124,77,255,.5)}
+.logo small{display:block;font-size:10px;font-weight:400;color:var(--dim)}
+.chip{font-size:11px;padding:5px 11px;border-radius:99px;border:1px solid var(--border);
+  background:var(--card);color:var(--dim)}
+.chip.on{color:#4dff9d;border-color:rgba(77,255,157,.35)}
+/* hero */
+.hero{text-align:center;padding:10px 0 26px}
+.hero h1{font-size:29px;line-height:1.5;font-weight:900}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--dim);font-size:13.5px;margin-top:10px;line-height:2}
+/* tabs */
+.tabs{display:flex;gap:8px;background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:5px;margin:8px 0 18px}
+.tabs button{flex:1;padding:11px;border:0;background:transparent;color:var(--dim);
+  font-family:inherit;font-size:13.5px;font-weight:700;border-radius:12px;cursor:pointer;
+  transition:.25s}
+.tabs button.active{background:var(--grad);color:#fff;box-shadow:0 4px 18px rgba(124,77,255,.4)}
+/* cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:18px;margin-bottom:14px;backdrop-filter:blur(14px);
+  animation:rise .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+label{display:block;font-size:12.5px;font-weight:700;color:var(--dim);margin-bottom:8px}
+input,textarea{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);
+  border-radius:13px;color:var(--txt);font-family:inherit;font-size:14.5px;padding:13px 15px;
+  outline:0;transition:.2s}
+input:focus,textarea:focus{border-color:var(--neon2);box-shadow:0 0 0 3px rgba(124,77,255,.2)}
+textarea{min-height:90px;resize:vertical}
+.hint{font-size:11px;color:var(--dim);margin-top:7px}
+/* results list */
+.results{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.vitem{display:flex;gap:11px;align-items:center;padding:10px;border:1px solid var(--border);
+  border-radius:14px;background:rgba(0,0,0,.25);cursor:pointer;transition:.2s;position:relative}
+.vitem:active{transform:scale(.98)}
+.vitem.sel{border-color:var(--neon3);background:rgba(0,229,255,.07)}
+.vitem img{width:86px;height:48px;object-fit:cover;border-radius:9px;flex-shrink:0}
+.vitem .vt{font-size:12.5px;font-weight:700;line-height:1.7;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vitem .vc{font-size:10.5px;color:var(--dim);margin-top:3px}
+.tick{position:absolute;top:-6px;left:-6px;width:22px;height:22px;border-radius:50%;
+  background:var(--neon3);color:#00121a;display:none;place-items:center;font-size:12px;font-weight:900}
+.vitem.sel .tick{display:grid}
+/* big CTA */
+.cta{width:100%;padding:16px;border:0;border-radius:16px;background:var(--grad);
+  color:#fff;font-family:inherit;font-size:15.5px;font-weight:800;cursor:pointer;
+  box-shadow:0 8px 28px rgba(255,61,129,.35);transition:.2s;display:flex;
+  align-items:center;justify-content:center;gap:9px}
+.cta:active{transform:scale(.97)}
+.cta:disabled{opacity:.55;box-shadow:none}
+.cta.ghost{background:transparent;border:1.5px solid var(--border);color:var(--txt);
+  box-shadow:none;margin-top:10px}
+/* course output */
+.course{line-height:2.1;font-size:14px}
+.course h1,.course h2{background:var(--grad);-webkit-background-clip:text;background-clip:text;
+  color:transparent;font-size:19px;margin:14px 0 8px}
+.course h3{color:var(--neon3);font-size:15px;margin:14px 0 6px}
+.course ul,.course ol{padding-right:20px;color:var(--dim)}
+.course a{color:var(--neon3);text-decoration:none;border-bottom:1px dashed rgba(0,229,255,.4)}
+/* loading */
+.load{display:none;text-align:center;padding:30px 0}
+.load.on{display:block}
+.orb{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;
+  border:3px solid transparent;border-top-color:var(--neon1);border-left-color:var(--neon3);
+  animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load p{color:var(--dim);font-size:13px}
+.dots span{display:inline-block;animation:blink 1.2s infinite;font-weight:900}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+/* bottom nav */
+nav.bottom{position:fixed;bottom:0;left:0;right:0;z-index:50;
+  padding:10px 20px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,rgba(11,12,27,.96) 60%,transparent);
+  display:flex;justify-content:center;gap:14px}
+nav.bottom button{border:1px solid var(--border);background:rgba(20,22,50,.85);
+  color:var(--dim);font-family:inherit;font-size:12px;font-weight:700;padding:10px 18px;
+  border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;backdrop-filter:blur(10px)}
+nav.bottom button.active{color:#fff;border-color:transparent;background:var(--grad)}
+nav.bottom .ic{font-size:17px}
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:rgba(20,22,50,.95);border:1px solid var(--border);color:var(--txt);
+  padding:11px 20px;border-radius:14px;font-size:13px;z-index:99;transition:.35s;
+  backdrop-filter:blur(10px);max-width:90vw}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:rgba(255,61,129,.5)}
+.actions{display:flex;gap:9px;margin-top:16px}
+.count{font-size:11px;color:var(--neon3);margin-top:8px}
+@media(min-width:600px){.hero h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="aurora"></div><div class="grid"></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <div class="mark">⚡</div>
+      <div>YT2Course<small>دوره‌ساز هوشمند یوتیوب</small></div>
+    </div>
+    <div class="chip" id="aiChip">AI: —</div>
+  </header>
+
+  <!-- HERO -->
+  <section id="view-home">
+    <div class="hero">
+      <h1>از یوتیوب <span class="grad-text">دوره بساز</span><br>در چند ثانیه ✨</h1>
+      <p>بدون افزونه، مستقیم روی گوشی — موضوع بده، دوره مرحله‌به‌مرحله با لینک ویدیوها تحویل بگیر.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="active" data-mode="auto">🤖 خودکار با AI</button>
+      <button data-mode="bridge">🪄 پل NotebookLM</button>
+    </div>
+
+    <div class="card">
+      <label>🔍 جستجوی موضوع در یوتیوب</label>
+      <input id="q" placeholder="مثلاً: آموزش پایتون مقدماتی">
+      <div class="results" id="results"></div>
+      <div class="count" id="selCount"></div>
+    </div>
+
+    <div class="card" id="linksCard" style="display:none">
+      <label>🔗 لینک ویدیوهای خودت (هر خط یک لینک)</label>
+      <textarea id="links" placeholder="https://youtube.com/watch?v=...&#10;https://youtu.be/..."></textarea>
+    </div>
+
+    <button class="cta" id="goBtn">🎬 ساخت دوره</button>
+    <button class="cta ghost" id="notebookBtn" style="display:none">🚀 باز کردن NotebookLM با پرامپت آماده</button>
+  </section>
+
+  <!-- LOADING -->
+  <section id="view-load" class="load">
+    <div class="orb"></div>
+    <p>در حال ساخت دوره‌ات</p>
+    <div class="dots"><span>●</span><span>●</span><span>●</span></div>
+  </section>
+
+  <!-- COURSE -->
+  <section id="view-course" style="display:none">
+    <div class="card"><div class="course" id="courseOut"></div>
+      <div class="actions">
+        <button class="cta ghost" style="margin:0" id="copyBtn">📋 کپی</button>
+        <button class="cta ghost" style="margin:0" id="backBtn">🏠 دوره جدید</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="bottom">
+  <button class="active" data-nav="home"><span class="ic">🏠</span>خانه</button>
+  <button data-nav="saved"><span class="ic">📚</span>دوره‌های من</button>
+  <button data-nav="about"><span class="ic">✨</span>درباره</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
