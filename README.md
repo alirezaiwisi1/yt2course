@@ -2,6 +2,8 @@
 
 از یوتیوب **دوره آموزشی مرحله‌به‌مرحله** بساز — مستقیم روی موبایل، بدون افزونه.
 
+🌐 **نسخه آنلاین:** https://yt2course.pages.dev (بعد از اتصال ریپو به Cloudflare Pages فعال می‌شود)
+
 ## ✨ امکانات
 
 - 🤖 **حالت خودکار با AI (Gemini):** موضوع را جستجو کن، ویدیوها را انتخاب کن؛ اپ ترنسکریپت ویدیوها را می‌خواند و یک دوره ساختاریافته با لینک هر بخش تولید می‌کند.
@@ -9,15 +11,22 @@
 - 📱 **PWA موبایلی:** روی گوشی نصب می‌شود (Add to Home Screen)، تم تیره نئونی، فارسی RTL، آفلاین قابل باز شدن.
 - 📚 ذخیره دوره‌ها در «دوره‌های من» (localStorage).
 
-## 🚀 اجرا
+## ☁️ دیپلوی Cloudflare Pages (پیشنهادی)
+
+1. Cloudflare Dashboard → Workers & Pages → Create → **Pages** → Connect to Git
+2. این ریپو را انتخاب کن (output = `public` از `wrangler.toml` خوانده می‌شود)
+3. Settings → Environment variables → Add: `GEMINI_API_KEY` (Type: **Secret**)
+4. Deploy → آدرس `yt2course.pages.dev` آماده ✅
+
+بک‌اند روی **Cloudflare Functions** اجرا می‌شود (`functions/api/[[route]].js`).
+
+## 🚀 اجرای محلی (Node)
 
 ```bash
 npm install
-cp .env.example .env   # کلید Gemini را در .env بگذار (https://aistudio.google.com/apikey — رایگان)
+cp .env.example .env   # کلید Gemini از https://aistudio.google.com/apikey
 npm start              # http://localhost:3001
 ```
-
-> بدون کلید Gemini هم اپ اجرا می‌شود — فقط حالت پل NotebookLM فعال است.
 
 ## 📲 نصب روی موبایل
 
@@ -28,10 +37,10 @@ npm start              # http://localhost:3001
 ## 🗂 ساختار
 
 ```
-public/        → PWA (index.html, app.js, sw.js, manifest)
-src/server.js  → Express
-src/routes/    → /api/search (جستجوی یوتیوب), /api/course (تولید دوره)
-src/gemini.js  → کلاینت Gemini
+public/                       → PWA (index.html, app.js, sw.js, manifest)
+src/                          → نسخه Node/Express (اجرای محلی)
+functions/api/[[route]].js    → بک‌اند Cloudflare Pages (جستجو + Gemini)
+wrangler.toml                 → کانفیگ Cloudflare
 ```
 
 ## 🔗 API
