@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-xevC58/checked-fetch.js
+// ../.wrangler/tmp/bundle-oPWbeV/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -111,30 +111,46 @@ Make it practical and beginner-friendly.
 
 ${context}`;
   const iaErrors = [];
-  const iaModels = ["gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"];
+  const iaModels = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"];
   for (const m of iaModels) {
-    try {
-      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({ model: m, input: prompt })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const outs = data?.outputs || [];
-        const text = [...outs].reverse().find((o) => o.text)?.text;
-        if (text) return text;
-      } else {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify({ model: m, input: prompt })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const outs = data?.outputs || [];
+          const text = [...outs].reverse().find((o) => o.text)?.text;
+          if (text) return text;
+          break;
+        }
         const t = await res.text();
         if (res.status === 429)
           throw new Error("\u0633\u0642\u0641 \u0631\u0627\u06CC\u06AF\u0627\u0646 Gemini \u0645\u0648\u0642\u062A\u0627\u064B \u067E\u0631 \u0634\u062F\u0647 \u2014 \u0686\u0646\u062F \u062F\u0642\u06CC\u0642\u0647 \u062F\u06CC\u06AF\u0631 \u062F\u0648\u0628\u0627\u0631\u0647 \u0627\u0645\u062A\u062D\u0627\u0646 \u06A9\u0646 \u23F3");
         if (res.status === 403 || res.status === 400 && /api.?key|permission/i.test(t))
           throw new Error("\u06A9\u0644\u06CC\u062F Gemini \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u06CC\u0627 \u0628\u062F\u0648\u0646 \u062F\u0633\u062A\u0631\u0633\u06CC \u0627\u0633\u062A \u2014 \u06CC\u06A9 \u06A9\u0644\u06CC\u062F \u062A\u0627\u0632\u0647 \u0628\u06AF\u06CC\u0631 \u{1F511}");
+        if ((res.status === 503 || res.status === 500) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
+        if (/high demand|unavailable|overloaded/i.test(t) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
         iaErrors.push(`${m} \u2192 HTTP ${res.status}: ${t.slice(0, 300)}`);
+        break;
+      } catch (e) {
+        if (/سقف|کلید/.test(e.message)) throw e;
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
+        iaErrors.push(`${m}: ${e.message}`);
+        break;
       }
-    } catch (e) {
-      if (/سقف|کلید/.test(e.message)) throw e;
-      iaErrors.push(`${m}: ${e.message}`);
     }
   }
   const aliases = ["gemini-flash-latest", "gemini-2.5-flash"];
@@ -754,7 +770,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-xevC58/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-oPWbeV/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -786,7 +802,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-xevC58/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-oPWbeV/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -45,31 +45,40 @@ Make it practical and beginner-friendly.
 ${context}`;
 
   const iaErrors = [];
-  // NEW: Interactions API (Google's current GA endpoint) first
-  const iaModels = ["gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"];
+  // NEW: Interactions API — lite first (highest free quota), 2 attempts per model
+  const iaModels = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.5-flash"];
   for (const m of iaModels) {
-    try {
-      const res = await fetch(`${BASE}/interactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-        body: JSON.stringify({ model: m, input: prompt }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const outs = data?.outputs || [];
-        const text = [...outs].reverse().find((o) => o.text)?.text;
-        if (text) return text;
-      } else {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(`${BASE}/interactions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+          body: JSON.stringify({ model: m, input: prompt }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const outs = data?.outputs || [];
+          const text = [...outs].reverse().find((o) => o.text)?.text;
+          if (text) return text;
+          break;
+        }
         const t = await res.text();
         if (res.status === 429)
           throw new Error("سقف رایگان Gemini موقتاً پر شده — چند دقیقه دیگر دوباره امتحان کن ⏳");
         if (res.status === 403 || (res.status === 400 && /api.?key|permission/i.test(t)))
           throw new Error("کلید Gemini نامعتبر یا بدون دسترسی است — یک کلید تازه بگیر 🔑");
+        if ((res.status === 503 || res.status === 500 || /high demand|overloaded/i.test(t)) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2500));
+          continue;
+        }
         iaErrors.push(`${m} → HTTP ${res.status}: ${t.slice(0, 300)}`);
+        break;
+      } catch (e) {
+        if (/سقف|کلید/.test(e.message)) throw e;
+        if (attempt === 0) { await new Promise((r) => setTimeout(r, 2500)); continue; }
+        iaErrors.push(`${m}: ${e.message}`);
+        break;
       }
-    } catch (e) {
-      if (/سقف|کلید/.test(e.message)) throw e;
-      iaErrors.push(`${m}: ${e.message}`);
     }
   }
 
