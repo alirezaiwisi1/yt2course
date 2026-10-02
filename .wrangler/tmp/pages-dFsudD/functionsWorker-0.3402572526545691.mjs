@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-8AJt7q/checked-fetch.js
+// ../.wrangler/tmp/bundle-eCOYky/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -26,6 +26,68 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
     return Reflect.apply(target, thisArg, argArray);
   }
 });
+
+// api/_transcript.js
+var UA_WEB = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36,gzip(gfe)";
+function parseInlineJson(html, globalName) {
+  const startToken = `var ${globalName} = `;
+  const startIndex = html.indexOf(startToken);
+  if (startIndex === -1) return null;
+  const jsonStart = startIndex + startToken.length;
+  let depth = 0;
+  for (let i = jsonStart; i < html.length; i++) {
+    if (html[i] === "{") depth++;
+    else if (html[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(html.slice(jsonStart, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+__name(parseInlineJson, "parseInlineJson");
+function decodeEntities(s) {
+  return s.replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n));
+}
+__name(decodeEntities, "decodeEntities");
+async function fetchTranscript(videoId, langPref = ["en", "fa"]) {
+  try {
+    const page = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en&bpctr=9999999999`, {
+      headers: { "User-Agent": UA_WEB, "Accept-Language": "en-US,en;q=0.9" }
+    });
+    if (!page.ok) return null;
+    const html = await page.text();
+    if (html.includes('class="g-recaptcha"')) return null;
+    const player = parseInlineJson(html, "ytInitialPlayerResponse");
+    const tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    if (!tracks.length) return null;
+    const score = /* @__PURE__ */ __name((t) => {
+      let s = 0;
+      const idx = langPref.indexOf(t.languageCode);
+      if (idx >= 0) s += 100 - idx;
+      if (!t.kind) s += 20;
+      return s;
+    }, "score");
+    const track = [...tracks].sort((a, b) => score(b) - score(a))[0];
+    const url = track.baseUrl.replace(/\\u0026/g, "&");
+    const res = await fetch(url, { headers: { "User-Agent": UA_WEB } });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    const parts = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map(
+      (m) => decodeEntities(m[1].replace(/<[^>]+>/g, "")).replace(/\n/g, " ")
+    );
+    if (!parts.length) return null;
+    return { text: parts.join(" ").slice(0, 15e3), lang: track.languageCode };
+  } catch {
+    return null;
+  }
+}
+__name(fetchTranscript, "fetchTranscript");
 
 // api/[[route]].js
 var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36";
@@ -94,16 +156,31 @@ async function playlistVideos(listId) {
   })).filter((v) => v.id && /^[\w-]{11}$/.test(v.id)).slice(0, 30);
 }
 __name(playlistVideos, "playlistVideos");
-async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
+async function generateCourse({ topic, links, lang = "fa", transcripts }, apiKey) {
   if (!apiKey) throw new Error("NO_KEY");
   let context = topic ? `Topic: ${topic}
 ` : "";
-  if (links?.length)
-    context += "Videos:\n" + links.map((l) => `- ${l.url} (${l.title || ""})`).join("\n") + "\n";
+  if (links?.length) {
+    context += "Videos:\n";
+    for (const l of links) {
+      const tr = transcripts?.[l.url];
+      context += `- ${l.url} (${l.title || ""})
+`;
+      if (tr) context += `  TRANSCRIPT: ${tr}
+`;
+    }
+    context += "\n";
+  }
   if (!context) throw new Error("Provide a topic or video links");
-  const prompt = `You are an expert course creator. Using ONLY the videos/topic below, write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
+  const hasTranscripts = Object.keys(transcripts || {}).length > 0;
+  const grounding = hasTranscripts ? `ABSOLUTE RULES:
+- Use ONLY the information contained in the TRANSCRIPTS above. Do NOT add any outside knowledge, do NOT invent examples, do NOT omit any major point made in the transcripts, and do NOT add anything the videos do not say.
+- If the transcripts do not cover something, simply do not include it.` : `NOTE: transcripts were unavailable for these videos. Base the course strictly on the video TITLES \u2014 teach only what the titles clearly indicate, and do not invent detailed claims about the videos' content.`;
+  const prompt = `You are an expert course creator. Write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"} based on the videos below.
 
-STRICT REQUIREMENTS:
+${grounding}
+
+FORMAT REQUIREMENTS:
 - This must be a REAL course with actual teaching content, NOT a table of contents or syllabus.
 - For EVERY module: write 2-4 full LESSONS.
 - Each lesson must contain 3-6 solid PARAGRAPHS of real explanatory teaching text (as if the instructor is explaining the concept in words), covering the key ideas, examples, and practical takeaways from the relevant video.
@@ -265,8 +342,18 @@ async function onRequest({ request, env }) {
           expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
         } else expanded.push(l);
       }
-      const course = await generateCourse({ topic, links: expanded }, key);
-      return json({ course });
+      const transcripts = {};
+      const targets = expanded.slice(0, 6);
+      await Promise.all(
+        targets.map(async (l) => {
+          const id = (l.url.match(/v=([\w-]{11})/) || [])[1];
+          if (!id) return;
+          const tr = await fetchTranscript(id);
+          if (tr?.text) transcripts[l.url] = tr.text;
+        })
+      );
+      const course = await generateCourse({ topic, links: expanded, transcripts }, key);
+      return json({ course, transcriptsUsed: Object.keys(transcripts).length });
     } catch (e) {
       return json({ error: e.message }, 500);
     }
@@ -779,7 +866,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-8AJt7q/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-eCOYky/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -811,7 +898,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-8AJt7q/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-eCOYky/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

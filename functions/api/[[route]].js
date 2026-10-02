@@ -1,4 +1,5 @@
 // Cloudflare Pages Function: /api/* (Workers runtime)
+import { fetchTranscript } from "./_transcript.js";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36";
 
@@ -70,16 +71,32 @@ async function playlistVideos(listId) {
     .slice(0, 30);
 }
 
-async function generateCourse({ topic, links, lang = "fa" }, apiKey) {
+async function generateCourse({ topic, links, lang = "fa", transcripts }, apiKey) {
   if (!apiKey) throw new Error("NO_KEY");
   let context = topic ? `Topic: ${topic}\n` : "";
-  if (links?.length)
-    context += "Videos:\n" + links.map((l) => `- ${l.url} (${l.title || ""})`).join("\n") + "\n";
+  if (links?.length) {
+    context += "Videos:\n";
+    for (const l of links) {
+      const tr = transcripts?.[l.url];
+      context += `- ${l.url} (${l.title || ""})\n`;
+      if (tr) context += `  TRANSCRIPT: ${tr}\n`;
+    }
+    context += "\n";
+  }
   if (!context) throw new Error("Provide a topic or video links");
 
-  const prompt = `You are an expert course creator. Using ONLY the videos/topic below, write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"}.
+  const hasTranscripts = Object.keys(transcripts || {}).length > 0;
+  const grounding = hasTranscripts
+    ? `ABSOLUTE RULES:
+- Use ONLY the information contained in the TRANSCRIPTS above. Do NOT add any outside knowledge, do NOT invent examples, do NOT omit any major point made in the transcripts, and do NOT add anything the videos do not say.
+- If the transcripts do not cover something, simply do not include it.`
+    : `NOTE: transcripts were unavailable for these videos. Base the course strictly on the video TITLES — teach only what the titles clearly indicate, and do not invent detailed claims about the videos' content.`;
 
-STRICT REQUIREMENTS:
+  const prompt = `You are an expert course creator. Write a COMPLETE, DETAILED course in ${lang === "fa" ? "Persian (Farsi)" : "English"} based on the videos below.
+
+${grounding}
+
+FORMAT REQUIREMENTS:
 - This must be a REAL course with actual teaching content, NOT a table of contents or syllabus.
 - For EVERY module: write 2-4 full LESSONS.
 - Each lesson must contain 3-6 solid PARAGRAPHS of real explanatory teaching text (as if the instructor is explaining the concept in words), covering the key ideas, examples, and practical takeaways from the relevant video.
@@ -255,8 +272,19 @@ export async function onRequest({ request, env }) {
           expanded.push(...vids.map((v) => ({ url: `https://www.youtube.com/watch?v=${v.id}`, title: v.title })));
         } else expanded.push(l);
       }
-      const course = await generateCourse({ topic, links: expanded }, key);
-      return json({ course });
+      // fetch transcripts (best effort, parallel, cap 6 videos)
+      const transcripts = {};
+      const targets = expanded.slice(0, 6);
+      await Promise.all(
+        targets.map(async (l) => {
+          const id = (l.url.match(/v=([\w-]{11})/) || [])[1];
+          if (!id) return;
+          const tr = await fetchTranscript(id);
+          if (tr?.text) transcripts[l.url] = tr.text;
+        })
+      );
+      const course = await generateCourse({ topic, links: expanded, transcripts }, key);
+      return json({ course, transcriptsUsed: Object.keys(transcripts).length });
     } catch (e) {
       return json({ error: e.message }, 500);
     }

@@ -159,11 +159,49 @@ function updateCount() {
   $("#selCount").textContent = state.selected.length ? `✓ ${state.selected.length} ویدیو انتخاب شد` : "";
 }
 
+/* ---------- progress (fake but monotonic; jumps on real events) ---------- */
+let progTimer = null, prog = 0;
+function startProgress() {
+  prog = 5;
+  setProg(prog, "شروع…", "در حال آماده‌سازی");
+  clearInterval(progTimer);
+  progTimer = setInterval(() => {
+    if (prog < 88) {
+      prog = Math.min(88, prog + Math.random() * 3);
+      setProg(prog);
+    }
+  }, 2000);
+}
+function setProg(p, stepText, subText) {
+  $("#pfill").style.width = Math.min(100, p) + "%";
+  if (stepText) $("#loadStep").textContent = stepText;
+  if (subText) $("#loadSub").textContent = subText;
+}
+function stopProgress(done = true) {
+  clearInterval(progTimer);
+  if (done) setProg(100, "تمام شد! 🎉");
+}
+
 /* ---------- generate course ---------- */
 $("#goBtn").addEventListener("click", async () => {
   const topic = $("#q").value.trim();
   if (!topic && !state.selected.length) return toast("موضوع یا ویدیو انتخاب کن", true);
   show("view-load");
+  startProgress();
+  const steps = [
+    [15, "🔍 خواندن ویدیوها…", "لینک‌ها بررسی می‌شوند"],
+    [35, "📝 خواندن متن ویدیوها (ترنسکریپت)…", "ممکن است کمی طول بکشد"],
+    [60, "🧠 هوش مصنوعی در حال نوشتن دوره…", "درس‌ها از محتوای ویدیوها ساخته می‌شوند"],
+    [85, "✍️ پرداخت نهایی…", "نزدیک است!"],
+  ];
+  let si = 0;
+  const stepTimer = setInterval(() => {
+    if (si < steps.length) {
+      const [p, a, b] = steps[si++];
+      prog = Math.max(prog, p);
+      setProg(prog, a, b);
+    }
+  }, 9000);
   try {
     const r = await fetch("/api/course", {
       method: "POST",
@@ -175,12 +213,18 @@ $("#goBtn").addEventListener("click", async () => {
         userKey: getKey(),
       }),
     });
-    const { course, error } = await r.json();
+    const { course, error, transcriptsUsed } = await r.json();
     if (error) throw new Error(error);
+    clearInterval(stepTimer);
+    stopProgress(true);
     $("#courseOut").innerHTML = marked.parse(course);
+    if (transcriptsUsed === 0)
+      toast("⚠️ ترنسکریپت ویدیوها در دسترس نبود — دوره از روی عنوان‌ها ساخته شد", true);
     saveCourse({ title: topic || state.selected[0]?.title || "دوره", body: course, date: Date.now() });
-    show("view-course");
+    setTimeout(() => show("view-course"), 500);
   } catch (e) {
+    clearInterval(stepTimer);
+    stopProgress(false);
     show("view-home");
     toast(
       e.message === "NO_KEY"
